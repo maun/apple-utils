@@ -18,6 +18,7 @@ pub struct FilePicker {
     pub filters: Vec<FileType>,
     pub multiple_selection: bool,
     pub show_file_extensions: bool,
+    pub copy_files: bool,
     pub directory_path: Option<PathBuf>,
 }
 
@@ -28,6 +29,7 @@ impl Default for FilePicker {
             filters: vec![FileType::Any],
             multiple_selection: true,
             show_file_extensions: false,
+            copy_files: false,
             directory_path: None,
         }
     }
@@ -82,7 +84,9 @@ impl FilePicker {
 
             let picker = UIDocumentPickerViewController::alloc(mtm);
             let picker = UIDocumentPickerViewController::initForOpeningContentTypes_asCopy(
-                picker, &uttypes, false,
+                picker,
+                &uttypes,
+                self.copy_files,
             );
             let delegate = Delegate::new(mtm, result_sender);
             picker.setDelegate(Some(ProtocolObject::from_ref(&*delegate)));
