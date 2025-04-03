@@ -6,11 +6,9 @@ use objc2::rc::Retained;
 use objc2::runtime::ProtocolObject;
 use objc2::{AllocAnyThread, DefinedClass, MainThreadOnly, define_class, msg_send};
 use objc2_foundation::{MainThreadMarker, NSArray, NSObject, NSObjectProtocol, NSString, NSURL};
-use objc2_ui_kit::{UIApplication, UIDocumentPickerDelegate, UIDocumentPickerViewController};
+use objc2_ui_kit::{UIApplication, UIDocumentPickerDelegate, UIDocumentPickerViewController, UIWindowScene};
 use objc2_uniform_type_identifiers::UTType;
 use tokio::sync::oneshot;
-
-use super::presentation_style::PresentationStyle;
 
 pub struct FilePicker {
     pub present_animated: bool,
@@ -40,7 +38,10 @@ impl FilePicker {
         let (_delegate, picker) = self.build_picker(mtm, result_sender);
     
         unsafe {
-            let window = app.keyWindow().unwrap();
+            let scenes = app.connectedScenes();
+            let window = scenes.iter().flat_map(|s| s.downcast::<UIWindowScene>().ok()).flat_map(|ws| ws.keyWindow()).last();
+            let window = window.expect("Could not find a scene with a keyWindow");
+            
             let current_vc = window.rootViewController().unwrap();
             current_vc.presentViewController_animated_completion(&picker, self.present_animated, None);
             receiver.await.unwrap()
