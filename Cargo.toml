@@ -7,6 +7,7 @@ description = "Utilities for interacting with Apple platforms"
 categories = ["api-bindings"]
 keywords = ["apple", "ios", "macos"]
 readme = "README.md"
+documentation = "https://docs.rs/apple-utils"
 edition = "2024"
 version = "0.1.0"
 
