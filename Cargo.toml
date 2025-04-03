@@ -2,7 +2,10 @@
 name = "apple-utils"
 authors = ["Manuel Adameit"]
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/maun/apple-utils"
 description = "Utilities for interacting with Apple platforms"
+categories = ["api-bindings"]
+keywords = ["apple", "ios", "macos"]
 readme = "README.md"
 edition = "2024"
 version = "0.1.0"
