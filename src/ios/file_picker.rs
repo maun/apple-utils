@@ -6,13 +6,16 @@ use objc2::rc::Retained;
 use objc2::runtime::ProtocolObject;
 use objc2::{AllocAnyThread, DefinedClass, MainThreadOnly, define_class, msg_send};
 use objc2_foundation::{MainThreadMarker, NSArray, NSObject, NSObjectProtocol, NSString, NSURL};
-use objc2_ui_kit::{UIApplication, UIDocumentPickerDelegate, UIDocumentPickerViewController, UIWindowScene};
-use objc2_uniform_type_identifiers::UTType;
+use objc2_ui_kit::{
+    UIApplication, UIDocumentPickerDelegate, UIDocumentPickerViewController, UIWindowScene,
+};
 use tokio::sync::oneshot;
+
+use crate::file_type::FileType;
 
 pub struct FilePicker {
     pub present_animated: bool,
-    pub allowed_extensions: Vec<String>,
+    pub filters: Vec<FileType>,
     pub multiple_selection: bool,
     pub show_file_extensions: bool,
     pub directory_path: Option<PathBuf>,
@@ -22,7 +25,7 @@ impl Default for FilePicker {
     fn default() -> Self {
         FilePicker {
             present_animated: true,
-            allowed_extensions: vec![],
+            filters: vec![FileType::Any],
             multiple_selection: true,
             show_file_extensions: false,
             directory_path: None,
@@ -36,36 +39,46 @@ impl FilePicker {
         let app = UIApplication::sharedApplication(mtm);
         let (result_sender, receiver) = tokio::sync::oneshot::channel::<Vec<PathBuf>>();
         let (_delegate, picker) = self.build_picker(mtm, result_sender);
-    
+
         unsafe {
             let scenes = app.connectedScenes();
-            let window = scenes.iter().flat_map(|s| s.downcast::<UIWindowScene>().ok()).flat_map(|ws| ws.keyWindow()).last();
+            let window = scenes
+                .iter()
+                .flat_map(|s| s.downcast::<UIWindowScene>().ok())
+                .flat_map(|ws| ws.keyWindow())
+                .last();
             let window = window.expect("Could not find a scene with a keyWindow");
-            
+
             let current_vc = window.rootViewController().unwrap();
-            current_vc.presentViewController_animated_completion(&picker, self.present_animated, None);
+            current_vc.presentViewController_animated_completion(
+                &picker,
+                self.present_animated,
+                None,
+            );
             receiver.await.unwrap()
         }
     }
-    
+
     fn build_picker(
         &self,
         mtm: MainThreadMarker,
         result_sender: oneshot::Sender<Vec<PathBuf>>,
     ) -> (Retained<Delegate>, Retained<UIDocumentPickerViewController>) {
         unsafe {
-            let document_types: Vec<_> = self
-                .allowed_extensions
-                .iter()
-                .flat_map(|s| UTType::typeWithFilenameExtension(NSString::from_str(&s).deref()))
-                .collect();
-            let document_types: Vec<_> = document_types.iter().map(|t| t.deref()).collect();
-            let document_types = NSArray::from_slice(document_types.as_slice());
-
+            let uttypes: Vec<_> = self.filters.iter().map(|f| {
+                let uttype = f.to_uttype();
+                if uttype.is_none() {
+                    eprintln!("Could not convert to uttype: {:?}", f);
+                }
+                uttype
+            }).flatten().collect();
+            let uttypes: Vec<_> = uttypes.iter().map(|t| t.deref()).collect();
+            let uttypes = NSArray::from_slice(uttypes.as_slice());
+            
             let picker = UIDocumentPickerViewController::alloc(mtm);
             let picker = UIDocumentPickerViewController::initForOpeningContentTypes_asCopy(
                 picker,
-                &document_types,
+                &uttypes,
                 true,
             );
             let delegate = Delegate::new(mtm, result_sender);
@@ -79,7 +92,7 @@ impl FilePicker {
                     .expect(&format!("Failed to canonicalize directory path {:?}", path));
                 let path = path.to_str().expect("Failed to convert path to string");
                 let url = NSURL::alloc();
-                let url = NSURL::initFileURLWithPath(url, NSString::from_str(path).deref());
+                let url = NSURL::initFileURLWithPath(url, &NSString::from_str(path));
                 picker.setDirectoryURL(Some(&url));
             }
 
