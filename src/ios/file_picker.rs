@@ -65,21 +65,24 @@ impl FilePicker {
         result_sender: oneshot::Sender<Vec<PathBuf>>,
     ) -> (Retained<Delegate>, Retained<UIDocumentPickerViewController>) {
         unsafe {
-            let uttypes: Vec<_> = self.filters.iter().map(|f| {
-                let uttype = f.to_uttype();
-                if uttype.is_none() {
-                    eprintln!("Could not convert to uttype: {:?}", f);
-                }
-                uttype
-            }).flatten().collect();
+            let uttypes: Vec<_> = self
+                .filters
+                .iter()
+                .map(|f| {
+                    let uttype = f.to_uttype();
+                    if uttype.is_none() {
+                        eprintln!("Could not convert to uttype: {:?}", f);
+                    }
+                    uttype
+                })
+                .flatten()
+                .collect();
             let uttypes: Vec<_> = uttypes.iter().map(|t| t.deref()).collect();
             let uttypes = NSArray::from_slice(uttypes.as_slice());
-            
+
             let picker = UIDocumentPickerViewController::alloc(mtm);
             let picker = UIDocumentPickerViewController::initForOpeningContentTypes_asCopy(
-                picker,
-                &uttypes,
-                true,
+                picker, &uttypes, false,
             );
             let delegate = Delegate::new(mtm, result_sender);
             picker.setDelegate(Some(ProtocolObject::from_ref(&*delegate)));
@@ -87,9 +90,6 @@ impl FilePicker {
             picker.setShouldShowFileExtensions(self.show_file_extensions);
 
             if let Some(path) = &self.directory_path {
-                let path = path
-                    .canonicalize()
-                    .expect(&format!("Failed to canonicalize directory path {:?}", path));
                 let path = path.to_str().expect("Failed to convert path to string");
                 let url = NSURL::alloc();
                 let url = NSURL::initFileURLWithPath(url, &NSString::from_str(path));
