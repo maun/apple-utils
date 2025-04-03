@@ -21,13 +21,13 @@ impl FileType {
             match self {
                 FileType::Any => UTType::typeWithIdentifier(ns_string!("public.item")),
                 FileType::Extension(ext) => {
-                    UTType::typeWithFilenameExtension(&NSString::from_str(&ext))
+                    UTType::typeWithFilenameExtension(&NSString::from_str(ext))
                 }
                 FileType::MimeType(mime_type) => {
-                    UTType::typeWithMIMEType(&NSString::from_str(&mime_type))
+                    UTType::typeWithMIMEType(&NSString::from_str(mime_type))
                 }
                 FileType::UniformTypeIdentifier(uti) => {
-                    UTType::typeWithIdentifier(&NSString::from_str(&uti))
+                    UTType::typeWithIdentifier(&NSString::from_str(uti))
                 }
             }
         }

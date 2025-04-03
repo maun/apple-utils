@@ -1,3 +1,6 @@
+//! iOS file picker functionality.
+//!
+//! This module provides a `FilePicker` struct that allows opening the native iOS document picker
 use std::cell::Cell;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -14,11 +17,17 @@ use tokio::sync::oneshot;
 use crate::file_type::FileType;
 
 pub struct FilePicker {
+    /// Whether to show the file picker with an animation.
     pub present_animated: bool,
+    /// A list of file types to filter by.
     pub filters: Vec<FileType>,
+    /// Whether multiple files can be selected.
     pub multiple_selection: bool,
+    /// Whether to display file extensions.
     pub show_file_extensions: bool,
+    /// Whether to copy selected files first before returning the paths.
     pub copy_files: bool,
+    /// Optional starting directory for the file picker.
     pub directory_path: Option<PathBuf>,
 }
 
@@ -36,7 +45,10 @@ impl Default for FilePicker {
 }
 
 impl FilePicker {
-    pub async fn open(self: &Self) -> Vec<PathBuf> {
+    /// Opens a file picker dialog with the configured settings.
+    ///
+    /// Returns a vector of selected file paths. If no files are selected, returns an empty vector.
+    pub async fn open(&self) -> Vec<PathBuf> {
         let mtm = MainThreadMarker::new().expect("Must run on main thread");
         let app = UIApplication::sharedApplication(mtm);
         let (result_sender, receiver) = tokio::sync::oneshot::channel::<Vec<PathBuf>>();
@@ -70,14 +82,13 @@ impl FilePicker {
             let uttypes: Vec<_> = self
                 .filters
                 .iter()
-                .map(|f| {
+                .filter_map(|f| {
                     let uttype = f.to_uttype();
                     if uttype.is_none() {
                         eprintln!("Could not convert to uttype: {:?}", f);
                     }
                     uttype
                 })
-                .flatten()
                 .collect();
             let uttypes: Vec<_> = uttypes.iter().map(|t| t.deref()).collect();
             let uttypes = NSArray::from_slice(uttypes.as_slice());
