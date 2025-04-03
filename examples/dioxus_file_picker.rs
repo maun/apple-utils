@@ -1,7 +1,7 @@
 //! Example using [dioxus](https://github.com/dioxuslabs/dioxus)
 //! [Dioxus Setup](https://dioxuslabs.com/learn/0.6/getting_started/#install-the-dioxus-cli)
 //! 
-//! Make sure to the dioxus cli and start the iOS Simulator,
+//! Make sure to install the dioxus cli and to start the iOS Simulator,
 //! then launch with `dx serve --example dioxus_file_picker --platform ios`
 
 use dioxus::prelude::*;
